@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <title>Bus Driving Game</title>
+    <style>
+        body {
+            margin: 0;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            flex-direction: column;
+        }
+        canvas {
+            background: #4CAF50;
+            border: 4px solid #fff;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+        .instructions {
+            margin-top: 10px;
+            font-size: 16px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+    <div class="instructions">
+        कंट्रोल: बाएं (Left) / दाएं (Right) तीर वाले बटन (Arrow Keys) का उपयोग करें!
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // बस की स्थिति
+        let bus = {
+            x: 175,
+            y: 480,
+            width: 50,
+            height: 90,
+            speed: 5
+        };
+
+        // रास्ते की बाधाएं (Obstacles / Other Cars)
+        let obstacles = [];
+        let score = 0;
+        let gameOver = false;
+
+        // कीबोर्ड इनपुट संभालना
+        let keys = {};
+        window.addEventListener("keydown", (e) => keys[e.code] = true);
+        window.addEventListener("keyup", (e) => keys[e.code] = false);
+
+        function spawnObstacle() {
+            let lanes = [50, 150, 250, 300];
+            let laneX = lanes[Math.floor(Math.random() * lanes.length)];
+            obstacles.push({
+                x: laneX,
+                y: -100,
+                width: 45,
+                height: 85,
+                speed: 4 + Math.random() * 2
+            });
+        }
+
+        setInterval(spawnObstacle, 2000);
+
+        function update() {
+            if (gameOver) return;
+
+            // बस की मूवमेंट
+            if ((keys["ArrowLeft"] || keys["KeyA"]) && bus.x > 30) {
+                bus.x -= bus.speed;
+            }
+            if ((keys["ArrowRight"] || keys["KeyD"]) && bus.x < canvas.width - 80) {
+                bus.x += bus.speed;
+            }
+
+            // बाधाओं की मूवमेंट और स्कोर
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].y += obstacles[i].speed;
+
+                // टक्कर (Collision) की जांच
+                if (
+                    bus.x < obstacles[i].x + obstacles[i].width &&
+                    bus.x + bus.width > obstacles[i].x &&
+                    bus.y < obstacles[i].y + obstacles[i].height &&
+                    bus.y + bus.height > obstacles[i].y
+                ) {
+                    gameOver = true;
+                }
+
+                // स्क्रीन से बाहर जाने पर स्कोर बढ़ाना
+                if (obstacles[i].y > canvas.height) {
+                    obstacles.splice(i, 1);
+                    score += 10;
+                }
+            }
+        }
+
+        function draw() {
+            // सड़क का बैकग्राउंड साफ़ करें
+            ctx.fillStyle = "#333";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // सड़क की बीच की पीली/सफ़ेद धारियां
+            ctx.strokeStyle = "#fff";
+            ctx.lineWidth = 4;
+            ctx.setLineDash([20, 20]);
+            ctx.beginPath();
+            ctx.moveTo(133, 0);
+            ctx.lineTo(133, canvas.height);
+            ctx.moveTo(266, 0);
+            ctx.lineTo(266, canvas.height);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // अन्य गाड़ियां (Obstacles) बनाना
+            ctx.fillStyle = "#E91E63";
+            obstacles.forEach(obs => {
+                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+                // कार की विंडशील्ड
+                ctx.fillStyle = "#fff";
+                ctx.fillRect(obs.x + 8, obs.y + 10, obs.width - 16, 15);
+                ctx.fillStyle = "#E91E63";
+            });
+
+            // हमारी बस बनाना
+            ctx.fillStyle = "#FFEB3B";
+            ctx.fillRect(bus.x, bus.y, bus.width, bus.height);
+            // बस की विंडशील्ड और खिड़कियां
+            ctx.fillStyle = "#2196F3";
+            ctx.fillRect(bus.x + 5, bus.y + 10, bus.width - 10, 20);
+            ctx.fillRect(bus.x + 5, bus.y + 40, bus.width - 10, 15);
+            ctx.fillRect(bus.x + 5, bus.y + 65, bus.width - 10, 15);
+
+            // स्कोर दिखाना
+            ctx.fillStyle = "#fff";
+            ctx.font = "20px Arial";
+            ctx.fillText("Score: " + score, 20, 30);
+
+            // गेम ओवर होने पर संदेश
+            if (gameOver) {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#FF5722";
+                ctx.font = "35px Arial";
+                ctx.fillText("Game Over!", 110, 280);
+                ctx.fillStyle = "#fff";
+                ctx.font = "18px Arial";
+                ctx.fillText("रीफ्रेश (Refresh) करके दोबारा खेलें", 90, 330);
+            }
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        loop();
+    </script>
+</body>
+</html>
